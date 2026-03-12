@@ -30,6 +30,7 @@ import (
 	"github.com/Autumn-27/ScopeSentry-Scan/modules/urlsecurity/sensitive"
 	"github.com/Autumn-27/ScopeSentry-Scan/modules/urlsecurity/trufflehog"
 	"github.com/Autumn-27/ScopeSentry-Scan/modules/vulnerabilityscan/nuclei"
+	vulzombie "github.com/Autumn-27/ScopeSentry-Scan/modules/vulnerabilityscan/zombie"
 	"github.com/Autumn-27/ScopeSentry-Scan/modules/webcrawler/rad"
 	"github.com/Autumn-27/ScopeSentry-Scan/pkg/logger"
 	"github.com/Autumn-27/ScopeSentry-Scan/pkg/utils"
@@ -186,6 +187,9 @@ func (pm *PluginManager) InitializePlugins() error {
 	// nuclei
 	nucleiPlugin := nuclei.NewPlugin()
 	pm.RegisterPlugin(nucleiPlugin.Module, nucleiPlugin.PluginId, nucleiPlugin)
+	// zombie (内置版弱口令插件)
+	zombiePlugin := vulzombie.NewPlugin()
+	pm.RegisterPlugin(zombiePlugin.Module, zombiePlugin.PluginId, zombiePlugin)
 	customPlugins, err := GetCustomPlugin()
 	if err != nil {
 		log.Error(fmt.Sprintf("load custom plugin error: %v", err))
