@@ -2,6 +2,9 @@ FROM autumn27/scopesentry-scan:latest
 
 USER root
 
+RUN mkdir -p /apps/plugin/VulnerabilityScan
+COPY plugins/zombie-scan/plugin.go /apps/plugin/VulnerabilityScan/33a3b9d04deb3fbdeef701884458804f.go
+
 RUN set -eux; \
     mkdir -p /apps/ext; \
     if command -v python3 >/dev/null 2>&1; then PY=python3; else PY=python; fi; \

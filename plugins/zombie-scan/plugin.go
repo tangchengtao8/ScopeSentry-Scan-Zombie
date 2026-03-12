@@ -103,7 +103,7 @@ func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 	found := false
 	successLine := ""
 	for line := range resultCh {
-		if strings.Contains(line, "Success") {
+		if isZombieSuccessLine(line) {
 			found = true
 			if successLine == "" {
 				successLine = line
@@ -135,4 +135,15 @@ func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 	}
 
 	return nil, nil
+}
+
+func isZombieSuccessLine(line string) bool {
+	l := strings.ToLower(line)
+	if strings.Contains(l, "login successfully") {
+		return true
+	}
+	if strings.Contains(l, "success") && !strings.Contains(l, "unsuccess") && !strings.Contains(l, "fail") {
+		return true
+	}
+	return false
 }
