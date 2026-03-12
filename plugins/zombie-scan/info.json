@@ -1,0 +1,9 @@
+
+{
+  "help": "zombie-scan -U {dict.user.default} -P {dict.pass.default}",
+  "parameter": "-U {dict.user.default} -P {dict.pass.default}",
+  "name": "zombie-scan",
+  "module": "VulnerabilityScan",
+  "version": "v1.0",
+  "introduction": "使用 zombie 工具进行弱口令检测"
+}
