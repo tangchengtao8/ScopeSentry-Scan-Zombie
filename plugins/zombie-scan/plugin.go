@@ -1,4 +1,3 @@
-
 package plugin
 
 import (
@@ -30,13 +29,13 @@ func Uninstall() error {
 func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 	var ip, port, protocol string
 	if asset, ok := input.(types.AssetHttp); ok {
-		ip = asset.Ip
+		ip = asset.IP
 		port = asset.Port
-		protocol = asset.Protocol
+		protocol = asset.Service
 	} else if assetOther, ok := input.(types.AssetOther); ok {
-		ip = assetOther.Ip
+		ip = assetOther.IP
 		port = assetOther.Port
-		protocol = assetOther.Protocol
+		protocol = assetOther.Service
 	} else {
 		return nil, fmt.Errorf("invalid input type")
 	}
@@ -57,9 +56,13 @@ func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 
 	var outputBuilder strings.Builder
 	found := false
+	successLine := ""
 	for line := range resultCh {
 		if strings.Contains(line, "Success") {
 			found = true
+			if successLine == "" {
+				successLine = line
+			}
 		}
 		if outputBuilder.Len() < 1024*1024 {
 			outputBuilder.WriteString(line)
@@ -68,15 +71,21 @@ func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 	}
 
 	if found {
-		vuln := types.VulnResult{
-			TaskName:   op.TaskName,
-			Plugin:     op.Name,
-			Target:     target,
-			VulnName:   "弱口令漏洞",
-			VulnDetail: outputBuilder.String(),
-			VulnLevel:  "高危",
+		url := target
+		if protocol == "http" || protocol == "https" {
+			url = fmt.Sprintf("%s://%s", protocol, target)
 		}
-		op.ResultFunc(vuln)
+		op.ResultFunc(types.VulnResult{
+			Url:      url,
+			VulnId:   op.PluginId,
+			VulName:  "Weak Password",
+			Matched:  successLine,
+			Level:    "high",
+			Request:  strings.Join(append([]string{"/apps/ext/zombie"}, args...), " "),
+			Response: outputBuilder.String(),
+			TaskName: op.TaskName,
+			Status:   1,
+		})
 		op.Log(fmt.Sprintf("发现弱口令: %s", target), "w")
 	}
 
