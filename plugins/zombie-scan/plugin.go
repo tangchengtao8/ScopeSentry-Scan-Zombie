@@ -27,26 +27,38 @@ func Uninstall() error {
 }
 
 func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
-	var ip, port, protocol string
+	var host, port, protocol string
 	if asset, ok := input.(types.AssetHttp); ok {
-		ip = asset.IP
+		host = asset.IP
+		if host == "" {
+			host = asset.Host
+		}
 		port = asset.Port
 		protocol = asset.Service
 	} else if assetOther, ok := input.(types.AssetOther); ok {
-		ip = assetOther.IP
+		host = assetOther.IP
+		if host == "" {
+			host = assetOther.Host
+		}
 		port = assetOther.Port
 		protocol = assetOther.Service
 	} else {
 		return nil, fmt.Errorf("invalid input type")
 	}
 
-	target := fmt.Sprintf("%s:%s", ip, port)
+	if host == "" || port == "" || protocol == "" {
+		return nil, nil
+	}
+
+	target := fmt.Sprintf("%s:%s", host, port)
 
 	args := []string{"-i", target, "-s", protocol}
 	fields := strings.Fields(op.Parameter)
 	for i := 0; i+1 < len(fields); i++ {
 		if fields[i] == "-U" || fields[i] == "-P" {
-			fields[i+1] = global.DictPath + "/" + fields[i+1]
+			if !strings.Contains(fields[i+1], "/") {
+				fields[i+1] = global.DictPath + "/" + fields[i+1]
+			}
 		}
 	}
 	args = append(args, fields...)
