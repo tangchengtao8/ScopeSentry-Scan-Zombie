@@ -185,7 +185,7 @@ func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 		}
 		matched := successLine
 		if matched != "" {
-			matched = "登录成功：" + matched
+			matched = parseZombieSuccess(matched)
 		}
 		op.ResultFunc(types.VulnResult{
 			Url:      url,
@@ -204,6 +204,48 @@ func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 	}
 
 	return nil, nil
+}
+
+func parseZombieSuccess(line string) string {
+	raw := line
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, "[brute]") {
+		return "登录成功：" + raw
+	}
+	parts := strings.Fields(line)
+	// Expected: [brute] url user pass, msg...
+	if len(parts) < 3 {
+		return "登录成功：" + raw
+	}
+
+	// Find the part ending with comma
+	endIdx := -1
+	for i := 2; i < len(parts); i++ {
+		if strings.HasSuffix(parts[i], ",") {
+			endIdx = i
+			break
+		}
+	}
+
+	if endIdx == -1 {
+		return "登录成功：" + raw
+	}
+
+	// Remove the comma
+	parts[endIdx] = strings.TrimSuffix(parts[endIdx], ",")
+	creds := parts[2 : endIdx+1]
+
+	if len(creds) == 1 {
+		// Single credential
+		return fmt.Sprintf("凭据: %s (原始信息: %s)", creds[0], raw)
+	} else if len(creds) >= 2 {
+		// User and Password
+		user := creds[0]
+		pass := strings.Join(creds[1:], " ")
+		return fmt.Sprintf("账号: %s | 密码: %s (原始信息: %s)", user, pass, raw)
+	}
+
+	return "登录成功：" + raw
 }
 
 func isZombieSuccessLine(line string) bool {
