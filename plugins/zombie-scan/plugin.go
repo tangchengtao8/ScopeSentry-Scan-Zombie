@@ -46,6 +46,39 @@ func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 		return nil, fmt.Errorf("invalid input type")
 	}
 
+	if protocol == "" {
+		switch port {
+		case "80":
+			protocol = "http"
+		case "443":
+			protocol = "https"
+		case "21":
+			protocol = "ftp"
+		case "22":
+			protocol = "ssh"
+		case "23":
+			protocol = "telnet"
+		case "445":
+			protocol = "smb"
+		case "1433":
+			protocol = "mssql"
+		case "1521":
+			protocol = "oracle"
+		case "3306":
+			protocol = "mysql"
+		case "3389":
+			protocol = "rdp"
+		case "5432":
+			protocol = "postgres"
+		case "5900":
+			protocol = "vnc"
+		case "6379":
+			protocol = "redis"
+		case "27017":
+			protocol = "mongodb"
+		}
+	}
+
 	if host == "" || port == "" || protocol == "" {
 		return nil, nil
 	}
