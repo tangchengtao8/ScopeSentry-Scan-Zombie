@@ -3,12 +3,11 @@ package plugin
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 
 	"github.com/Autumn-27/ScopeSentry-Scan/internal/options"
 	"github.com/Autumn-27/ScopeSentry-Scan/internal/types"
-	"github.com/Autumn-27/ScopeSentry-Scan/pkg/utils"
-	"github.com/chainreactors/zombie/core"
-	"github.com/chainreactors/zombie/pkg"
 )
 
 func GetName() string {
@@ -16,8 +15,7 @@ func GetName() string {
 }
 
 func Install() error {
-	// 加载 zombie 插件库
-	return pkg.Load()
+	return nil
 }
 
 func Check() error {
@@ -29,7 +27,6 @@ func Uninstall() error {
 }
 
 func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
-	// 获取资产信息
 	var ip, port, protocol string
 	if asset, ok := input.(types.AssetHttp); ok {
 		ip = asset.Ip
@@ -43,56 +40,37 @@ func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 		return nil, fmt.Errorf("invalid input type")
 	}
 
-	// 从前端传递的参数中解析用户和密码字典路径
-	args, err := utils.Tools.ParseArgs(op.Parameter, "U", "P")
-	if err != nil {
-		op.Log(fmt.Sprintf("解析参数失败: %v", err), "e")
-	}
-
-	zombieOpt := core.Option{}
-	zombieOpt.IP = []string{fmt.Sprintf("%s:%s", ip, port)}
-	zombieOpt.ServiceName = protocol
+	// 构造命令：调用 /apps/ext/zombie
+	// zombie -i 1.2.3.4:80 -s http --user admin --pass admin
+	target := fmt.Sprintf("%s:%s", ip, port)
 	
-	// 如果参数中有指定字典文件，则使用它
-	if u, ok := args["U"]; ok && u != "" {
-		zombieOpt.UsernameFile = u
-	}
-	if p, ok := args["P"]; ok && p != "" {
-		zombieOpt.PasswordFile = p
-	}
-
-	// 验证配置
-	if err := zombieOpt.Validate(); err != nil {
-		return nil, err
+	// 使用 op.Parameter，它已经包含了前端传来的参数
+	// 假设用户填写的参数是 -U users.txt -P passwords.txt
+	args := []string{"-i", target, "-s", protocol}
+	if op.Parameter != "" {
+		args = append(args, strings.Fields(op.Parameter)...)
 	}
 
-	// 准备执行器
-	runner, err := zombieOpt.Prepare()
+	cmd := exec.Command("/apps/ext/zombie", args...)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, err
+		// 即使报错也解析输出，因为 zombie 可能因为发现弱口令而退出码非0
+		op.Log(fmt.Sprintf("Zombie 运行出错: %v, 输出: %s", err, string(output)), "e")
 	}
 
-	// 捕获爆破结果并上报
-	go func() {
-		for result := range runner.OutputCh {
-			if result.OK {
-				vuln := types.VulnResult{
-					TaskName:   op.TaskName,
-					Plugin:     op.Name,
-					Target:     result.URI(),
-					VulnName:   "弱口令漏洞",
-					VulnDetail: fmt.Sprintf("发现弱口令! 协议: %s, 账号: %s, 密码: %s", result.Service, result.Username, result.Password),
-					VulnLevel:  "高危",
-				}
-				// 上报漏洞结果到前端
-				op.ResultFunc(vuln)
-				op.Log(fmt.Sprintf("发现弱口令: %s", result.URI()), "w")
-			}
+	resultStr := string(output)
+	if strings.Contains(resultStr, "Success") {
+		vuln := types.VulnResult{
+			TaskName:   op.TaskName,
+			Plugin:     op.Name,
+			Target:     target,
+			VulnName:   "弱口令漏洞",
+			VulnDetail: resultStr,
+			VulnLevel:  "高危",
 		}
-	}()
-
-	// 开始执行爆破
-	runner.Run()
+		op.ResultFunc(vuln)
+		op.Log(fmt.Sprintf("发现弱口令: %s", target), "w")
+	}
 
 	return nil, nil
 }
