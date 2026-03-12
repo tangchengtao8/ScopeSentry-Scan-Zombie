@@ -2,12 +2,19 @@
 FROM golang:1.24-alpine AS builder
 RUN apk add --no-cache git gcc musl-dev
 WORKDIR /build
-# 拷贝依赖定义
+
+# 1. 拷贝依赖定义文件
 COPY go.mod go.sum ./
-# 拷贝集成进去的 zombie 源码
+
+# 2. 拷贝所有本地依赖库 (必须在 go mod download 之前)
+# 这些是 go.mod 中 replace 指令指向的本地目录
+COPY libs/ ./libs/
 COPY internal/zombie ./internal/zombie
+
+# 3. 下载依赖
 RUN go mod download
-# 拷贝全量源码并编译
+
+# 4. 拷贝全量源码并编译
 COPY . .
 RUN go build -o ScopeSentry-Scan cmd/ScopeSentry/main.go
 
