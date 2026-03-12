@@ -25,6 +25,8 @@ require (
 	golang.org/x/text v0.29.0 // indirect
 )
 
+replace github.com/chainreactors/zombie => ./internal/zombie
+
 require (
 	github.com/akrylysov/pogreb v0.10.2 // indirect
 	github.com/corpix/uarand v0.2.0 // indirect
