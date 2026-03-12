@@ -1,7 +1,10 @@
 version: '3'
 services:
   scan:
-    image: autumn27/scopesentry-scan:latest
+    build:
+      context: ..
+      dockerfile: build/Dockerfile.scan
+    image: tangchengtao8/scopesentry-scan-zombie:latest
     network_mode: host
     container_name: scopesentry-scan
     restart: always
