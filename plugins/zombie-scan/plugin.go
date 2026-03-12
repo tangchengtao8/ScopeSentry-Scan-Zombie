@@ -157,7 +157,10 @@ func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 	for line := range resultCh {
 		if isZombieSuccessLine(line) {
 			found = true
-			if successLine == "" {
+			// 优先取包含具体凭据的 [brute] 行
+			if strings.HasPrefix(line, "[brute]") {
+				successLine = line
+			} else if successLine == "" {
 				successLine = line
 			}
 		}
@@ -190,7 +193,7 @@ func Execute(input interface{}, op options.PluginOption) (interface{}, error) {
 		op.ResultFunc(types.VulnResult{
 			Url:      url,
 			VulnId:   op.PluginId,
-			VulName:  "弱口令",
+			VulName:  fmt.Sprintf("%s 弱口令", strings.ToUpper(protocol)),
 			Matched:  matched,
 			Level:    "high",
 			Request:  strings.Join(append([]string{"/apps/ext/zombie"}, args...), " "),
