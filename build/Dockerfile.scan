@@ -2,21 +2,7 @@ FROM autumn27/scopesentry-scan:latest
 
 USER root
 
-RUN mkdir -p /apps/ext && \
-    python - <<'PY'\n\
-import os\n\
-import urllib.request\n\
-\n\
-url = 'https://github.com/chainreactors/zombie/releases/latest/download/zombie_linux_amd64'\n\
-dst = '/apps/ext/zombie'\n\
-\n\
-with urllib.request.urlopen(url, timeout=60) as r:\n\
-    data = r.read()\n\
-\n\
-os.makedirs(os.path.dirname(dst), exist_ok=True)\n\
-with open(dst, 'wb') as f:\n\
-    f.write(data)\n\
-\n\
-os.chmod(dst, 0o755)\n\
-print('zombie installed:', dst, 'size:', len(data))\n\
-PY
+RUN set -eux; \
+    mkdir -p /apps/ext; \
+    if command -v python3 >/dev/null 2>&1; then PY=python3; else PY=python; fi; \
+    $PY -c "import os, urllib.request; url='https://github.com/chainreactors/zombie/releases/latest/download/zombie_linux_amd64'; dst='/apps/ext/zombie'; data=urllib.request.urlopen(url, timeout=60).read(); os.makedirs(os.path.dirname(dst), exist_ok=True); open(dst,'wb').write(data); os.chmod(dst, 0o755); print('zombie installed:', dst, 'size:', len(data))"
